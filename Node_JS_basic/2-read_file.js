@@ -1,33 +1,52 @@
 const fs = require('fs');
 
 function countStudents(path) {
-  try {
-    const data = fs.readFileSync(path, 'utf8');
-    const lines = data.split('\n').filter((line) => line);
-    const fields = {};
-    let students = 0;
+  if (!fs.existsSync(path)) {
+    console.log(`File ${path} does not exist`);
+    return null;
+  }
 
-    lines.forEach((line) => {
-      const student = line.split(',');
-      if (!fields[student[3]]) {
-        fields[student[3]] = [];
+  try {
+    const data = fs.readFileSync(path, 'utf8').split('\n');
+
+    // Remove any empty lines from the end of the file
+    while (data[data.length - 1] === '') {
+      data.pop();
+    }
+
+    if (data.length === 0) {
+      console.log(`File ${path} is empty`);
+      return {};
+    }
+
+    const students = data.map((line) => line.split(','));
+    const header = students.shift(); // Remove the header
+
+    const fields = {};
+
+    students.forEach((student) => {
+      const [firstname, lastname, age, field] = student;
+      if (!fields[field]) {
+        fields[field] = {
+          count: 0,
+          list: [],
+        };
       }
-      if (student[0]) {
-        fields[student[3]].push(student[0]);
-        students += 1;
-      }
+      fields[field].count++;
+      fields[field].list.push(firstname);
     });
 
-    console.log(`Number of students: ${students}`);
+    console.log(`Number of students: ${students.length}`);
+
     for (const field in fields) {
-      if (Object.prototype.hasOwnProperty.call(fields, field)) {
-        const list = fields[field].join(', ');
-        console.log(`Number of students in ${field}: ${fields[field].length}. List: ${list}`);
-      }
+      console.log(`Number of students in ${field}: ${fields[field].count}. List: ${fields[field].list.join(', ')}`);
     }
-  } catch (err) {
-    console.error(`Cannot load the database: ${err}`);
+
+    return fields;
+  } catch (error) {
+    console.log(`Error reading file ${path}: ${error.message}`);
+    return null;
   }
 }
 
-countStudents('database.csv');
+module.exports = countStudents;
