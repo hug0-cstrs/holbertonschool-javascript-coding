@@ -1,26 +1,46 @@
 const http = require('http');
 const fs = require('fs');
+const url = require('url');
 
 const app = http.createServer((req, res) => {
-  if (req.url === '/') {
+  const { pathname } = url.parse(req.url);
+
+  if (pathname === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Hello Holberton School!');
-  } else if (req.url === '/students') {
-    const database = process.argv[2];
-    fs.readFile(database, 'utf-8', (err, data) => {
-      if (err) {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('Database not found');
-      } else {
-        const students = data.split('\n').filter((line) => line !== '');
-        const studentsList = students.join('\n');
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end(`This is the list of our students\n${studentsList}`);
-      }
-    });
+    res.end('Hello Holberton School!\n');
+  } else if (pathname === '/students') {
+    const databaseFilePath = process.argv[2];
+
+    if (!databaseFilePath) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Database file not provided.\n');
+    } else {
+      fs.readFile(databaseFilePath, 'utf8', (err, data) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end('Internal Server Error.\n');
+        } else {
+          const students = data
+            .split('\n')
+            .filter((line) => line.trim() !== '');
+
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.write('This is the list of our students\n');
+
+          const countStudents = require('./3-read_file_async');
+          countStudents(databaseFilePath, (error, result) => {
+            if (error) {
+              res.end(`Error: ${error.message}\n`);
+            } else {
+              res.end(result);
+            }
+          });
+        }
+      });
+    }
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Invalid request');
+    res.end('Not Found\n');
   }
 });
 
